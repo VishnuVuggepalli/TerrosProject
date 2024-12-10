@@ -174,10 +174,4 @@ npm test
 
 ---
 
-## **Contributors**
-- **Developer**: [Your Name]
-- **Contact**: [Your Email]
-
----
-
 This project is tested and running fine. Let me know if you have any questions or need further assistance! 😊
