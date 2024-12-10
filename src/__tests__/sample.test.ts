@@ -1,16 +1,51 @@
-import { addObjects } from '../index';
+import request from 'supertest';
+import app from '../index'; // Adjust path as needed
 
-const obj1 = { a: 1, b: 2 };
-const obj2 = { b: 3, c: 4 };
+import { redis } from '../services/RedisService'; // Adjust the path as needed
 
-console.log(addObjects(obj1, obj2)); // Output: { a: 1, b: 5, c: 4 }
+afterAll(async () => {
+  await redis.quit(); // Properly close the Redis connection
+});
 
-describe('addObjects', () => {
-  it('should add values of matching keys', () => {
-    const obj1 = { a: 1, b: 2 };
-    const obj2 = { b: 3, c: 4 };
-    const result = addObjects(obj1, obj2);
+describe('Chess Game REST APIs', () => {
+  let gameId: string;
 
-    expect(result).toEqual({ a: 1, b: 5, c: 4 });
+  it('POST /game - should create a new game', async () => {
+    const response = await request(app).post('/game');
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('gameId');
+    gameId = response.body.gameId; // Save the game ID for other tests
+  });
+
+  it('GET /game/:id - should fetch the game state', async () => {
+    const response = await request(app).get(`/game/${gameId}`);
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body.game).toHaveProperty('board');
+  });
+
+  it('POST /game/:id/select - should select a piece', async () => {
+    const response = await request(app)
+      .post(`/game/${gameId}/select`)
+      .send({ pieceId: 'W60p' }); // Replace with valid piece ID
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body.message).toBe('Piece selected');
+  });
+
+  it('POST /game/:id/move - should make a move', async () => {
+    const response = await request(app)
+      .post(`/game/${gameId}/move`)
+      .send({ toPosition: { x: 0, y: 5 } }); // Replace with a valid move position
+
+    if (response.status === 200) {
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.message).toBe('Move made successfully');
+    } else {
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.error).toBe('Invalid move');
+    }
   });
 });
